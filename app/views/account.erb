@@ -1,17 +1,35 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <title>title</title>
-    <link rel="stylesheet" href="stylesheets/bootstrap.css" type="text/css">
-  </head>
-  <body id="page-top">
-    <% if Helpers.is_logged_in?(session) %>
-      <h1>Welcome <%= Helpers.current_user(session).username %></h1>
-      <h3>Your Balance: <%= Helpers.current_user(session).balance %></h3>
-      <p><a href="/logout">Log Out</a></p>
-    <% else%>
-      <p><a href="/">Homepage</a></p>
-    <% end %>
-  </body>
-</html>
+require_relative '../../config/environment'
+class ApplicationController < Sinatra::Base
+  configure do
+    set :views, Proc.new { File.join(root, "../views/") }
+    enable :sessions unless test?
+    set :session_secret, "secret"
+  end
+
+  get '/' do
+    erb :index
+  end
+
+  post '/login' do
+    @user = User.find_by(username: params["username"])
+    if @user != nil && @user.password == params[:password]
+      session[:user_id] = @user.id
+    redirect '/account'
+    end
+    erb :error
+  end
+
+  get '/account' do
+    @current_user = User.find_by_id(session[:user_id])
+    if @current_user
+      erb :account
+    else
+      erb :error
+    end
+  end
+
+  get '/logout' do
+    session.clear
+    redirect to '/'
+  end
+end
